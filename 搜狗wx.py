@@ -14,6 +14,7 @@ from urllib import parse
 class WeChatSpider(object):
 
     def __init__(self):
+        # 微信公众号excel表
         self.execl_path = r'C:\个人\软件\微信公众号.xlsx'
         self.headers = {
             #'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.80 Safari/537.36',
@@ -24,8 +25,6 @@ class WeChatSpider(object):
             'Cache-Control': 'max-age=0',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-            # 'Referer': 'https://weixin.sogou.com/weixin?type=1&s_from=input&query=%E7%A8%8B%E5%BA%8F%E4%BA%BA%E7%94%9F&ie=utf8&_sug_=n&_sug_type_=',
-            # 'Cookie': 'ABTEST=0|1560407920|v1; SNUID=C3770631EBE967C52C2506AFEC4296FA; IPLOC=CN5101; SUID=2F9CEDDD771A910A000000005D01EF70; JSESSIONID=aaaOH1XUnDmtOch6C5hRw; SUID=2F9CEDDD5218910A000000005D01EF70; SUV=004E3C72DDED9C2F5D01EF71499B9427'
 
         }
 
@@ -37,6 +36,7 @@ class WeChatSpider(object):
         return cols
 
     def get_ip(self):
+        # 代理IP接口
         tar_url = 'https://api.2808proxy.com/proxy/unify/get?token=N6SORZ6Y3GGMPUN9C1L3YCK0WMEB26WO&amount=1&proxy_type=http&format=json&splitter=rn&expire=300'
         text = requests.get(url=tar_url).text
         ip_s = json.loads(text)
@@ -73,6 +73,7 @@ class WeChatSpider(object):
                 acc_url = "https://weixin.sogou.com" + html.xpath("//a[@uigs='account_name_0']/@href")[0].replace("amp;", "") + "&k=12&h=I"
             except IndexError:
                 print(lis + "该公众号不存在")
+                continue
             s.headers.update({"Referer": url_s})
             # 获取公众号url
             response2 = s.get(url=acc_url, proxies = proxi).content
@@ -114,81 +115,23 @@ class WeChatSpider(object):
                     content = soup.find_all(attrs={
                         "class": "rich_media_content "})[0]
                 except IndexError as e:
+                    pub_time = ''
+                    content = ''
                     print(response4.content.decode("utf-8"))
                 autho = author[i]
                 keyword = keywords[i]
                 create_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(
                     time.time())) + ".3059557+08:00"
-                self.check_dic('', '', lis, detail_url, title, autho, pub_time, keyword, '', content, '', '', create_time, '')
+                print(lis, detail_url, title, autho, pub_time, keyword, content)
             print(lis)
             time.sleep(10)
-
-    def check_dic(self, PNID, PRCID, MediaSource, Url, Title, Author,PublishTime, Keywords,
-                     Abstract, content, ClickCount, CommentCount, CreateTime, Category):
-        dic = {
-          "DBAttributeValue": {
-            "DataType": 0,
-            "DBType_En": "Forum",
-            "DBTypeName": "详情",
-            "IsSyncReturn": 0,
-            "TempMqName": "",
-            "DBKey": "311_YQ_News_sgfgfgf",
-            "ProcName": "Proc_App_InsertNews",
-            "ProcParaName": "news",
-            "ParaConfigName": "news",
-            "OptName": "",
-            "OptTime": "",
-            "Platform": 0
-          },
-          "ListNews": [
-            {
-            "Platform": 0,
-            "PEID": 0,
-            "PNID": PNID,
-            "PRCID": PRCID,
-            "MediaSource": MediaSource,
-            "MediaSourceUrl": "",
-            "Url": Url,
-            "Title": Title,
-            "Author": Author,
-            "PublishTime": PublishTime,
-            "Keywords": Keywords,
-            "Abstract": Abstract,
-            "Content": str(content)[0:4999],
-            "Content2": str(content)[5000:9999],
-            "Content3": str(content)[10000:14999],
-            "Content4": str(content)[15000:19999],
-            "Content5": str(content)[20000:24999],
-            "ClickCount": ClickCount,
-            "CommentCount": CommentCount,
-            "CreateTime": CreateTime,
-            "ModifyTime": CreateTime,
-            "Category": Category,
-            "ForwardNum": 0,
-            "LanguageCode": ""
-        }
-          ],
-          "ListComments": ""
-        }
-        self.transmission(dic)
-
-    def transmission(self, dic):
-        json_obj = str(dic)
-        # credentials = pika.PlainCredentials('admin', '123456')
-        connection = pika.BlockingConnection(pika.ConnectionParameters('10.4.9.177', 5672))
-        # 声明管道
-        channel = connection.channel()
-        channel.queue_declare(queue='311_YQ_News_sgfgfgf')
-        channel.basic_publish(exchange='',
-                              routing_key='311_YQ_News_sgfgfgf',  # name
-                              body=json_obj)  # content
 
 
 if __name__ == '__main__':
     spider = WeChatSpider()
     spider.parse()
-    # schedule.every(60).minutes.do(spider.parse)
-    # while True:
-    #     print("准备再次执行！！！"+time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(time.time())))
-    #     schedule.run_pending()
-    #     time.sleep(10)
+    schedule.every(60).minutes.do(spider.parse)
+    while True:
+        print("准备再次执行！！！"+time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(time.time())))
+        schedule.run_pending()
+        time.sleep(10)
